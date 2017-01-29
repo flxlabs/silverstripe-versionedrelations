@@ -65,6 +65,18 @@ class MyRelatedObject extends DataObject {
 }
 ```
 
+Getting the versioned relations:
+
+```php
+
+…
+
+$this->getVersionedRelation('Relations');
+
+…
+
+```
+
 
 
 ## TODO
