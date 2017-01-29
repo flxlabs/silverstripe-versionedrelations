@@ -3,19 +3,6 @@
 
 class VersionedBelongsManyManyExtension extends DataExtension {
 
-    public function setOwner($owner, $ownerBaseClass = null) {
-
-        parent::setOwner($owner, $ownerBaseClass);
-
-        if( $owner ) {
-            // check if owner has versioned extension
-            if(!$owner->hasExtension('Versioned')) {
-                throw new Exception("{$this->owner->ClassName} need to have Versioned Extension");
-            }
-        }
-
-    }
-
     /*
      * Returns the belongs_many_many relations which will be handled for versioning
      *
@@ -31,7 +18,6 @@ class VersionedBelongsManyManyExtension extends DataExtension {
         if($readingMode == 'Stage.Stage'){
             foreach($this->getRelationsNames() as $relationName) {
                 foreach($this->owner->getManyManyComponents($relationName) as $relation){
-                    echo $relation->ClassName.";".$relation->ID." ";
                     $relation->storeRelations();
                     $relation->write(true);
                 }

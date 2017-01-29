@@ -3,21 +3,10 @@
 class VersionedManyManyExtension extends DataExtension {
 
 
-    public function setOwner($owner, $ownerBaseClass = null) {
-
-        parent::setOwner($owner, $ownerBaseClass);
-
-        if( $owner ) {
-            // check if owner has versioned extension
-            if(!$owner->hasExtension('Versioned')) {
-                throw new Exception("{$this->owner->ClassName} need to have Versioned Extension");
-            }
-        }
-
-    }
-
     /*
      * create store for historical versions, duplicate relation for live
+     *
+     * @return array
      */
     public function extraStatics($class = null, $extension = null) {
 
@@ -67,15 +56,19 @@ class VersionedManyManyExtension extends DataExtension {
 
             foreach($this->owner->getManyManyComponents($relationName) as $relation){
                 // store basics
-                $store[] = array(
+                $entryStore = array(
                     'ClassName'=>$relation->ClassName,
                     'ID'=>$relation->ID,
-                    'Version'=>$relation->Version,
                 );
-                // store extraFields
-                foreach($this->owner->manyManyExtraFieldsForComponent($relationName) as $k=>$v) {
-                    $store[count($store) - 1][$k] = $relation->$k;
+                if(isset($relation->Version)) {
+                    $entryStore['Version'] = $relation->Version;
                 }
+                // store extraFields
+                foreach($this->getExtraFieldsArray( $relationName ) as $k=>$v) {
+                    $entryStore[$k] = $relation->$k;
+                }
+
+                $store[] = $entryStore;
             }
             $json = Convert::array2json($store);
             $this->owner->setField($relationName . '_Store', $json);
@@ -134,17 +127,20 @@ class VersionedManyManyExtension extends DataExtension {
             if($store = Convert::json2Array( $versionedOwner->$storeFieldName )) {
                 foreach( $store as $entry ) {
 
-                    if( $this->getVersionedObj($entry) ){
-                        if( $foreignObj = DataObject::get( $entry['ClassName'] )->byID( $entry['ID'] ) ){
+                    if( $foreignObj = DataObject::get( $entry['ClassName'] )->byID( $entry['ID'] ) ) {
+
+                        // rollback versionable related object
+                        if( $foreignObj->hasExtension('Versioned') && $this->getVersionedObj($entry) ) {
                             $foreignObj->doRollbackTo( $entry['Version'] );
-                            //
-                            $extras = array();
-                            foreach($this->owner->manyManyExtraFieldsForComponent($relationName) as $k=>$v) {
-                                if( isset($entry[$k]) ) $extras[$k] = $entry[$k];
-                            }
-                            // add
-                            $list->add($foreignObj, $extras);
                         }
+                        // extraFields
+                        $extras = array();
+                        foreach($this->getExtraFieldsArray( $relationName ) as $k=>$v) {
+                            if( isset($entry[$k]) ) $extras[$k] = $entry[$k];
+                        }
+                        // add
+                        $list->add($foreignObj, $extras);
+
                     }
                 }
             }
@@ -156,6 +152,7 @@ class VersionedManyManyExtension extends DataExtension {
     /*
      *
      */
+    /*
 	public function updateCMSFields( FieldList $fields ) {
 
         foreach($this->getRelationsNames() as $relationName) {
@@ -163,9 +160,10 @@ class VersionedManyManyExtension extends DataExtension {
         }
 
     }
-
+    */
 
     /*
+     *
      * @return ArrayList
      */
 	private function getStoredRelation( $relationName ){
@@ -176,7 +174,7 @@ class VersionedManyManyExtension extends DataExtension {
             foreach( $entries as $entry ) {
                 if( $versionedObj = $this->getVersionedObj($entry) ){
                     // additional extra fields
-                    foreach($this->owner->manyManyExtraFieldsForComponent($relationName) as $k=>$v) {
+                    foreach($this->getExtraFieldsArray( $relationName ) as $k=>$v) {
                         if($k)
                             $versionedObj->$k = $entry[$k];
                     }
@@ -187,13 +185,30 @@ class VersionedManyManyExtension extends DataExtension {
         return $ret;
     }
 
-	public function getVersionedRelation( $relationName ){
+    /*
+     *
+     * @return ArrayList
+     */
+    public function getVersionedRelation( $relationName ){
 
         $readingMode = Versioned::get_reading_mode();
         if($readingMode == 'Stage.Stage'){
             return $this->owner->getManyManyComponents($relationName);
         }
         return $this->getStoredRelation($relationName);
+    }
+
+
+    /*
+     *
+     * @return array
+     */
+    private function getExtraFieldsArray( $relationName ){
+
+        if($extra = $this->owner->manyManyExtraFieldsForComponent($relationName)) return $extra;
+
+        return array();
+
     }
 
 
