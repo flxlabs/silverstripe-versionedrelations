@@ -1,15 +1,11 @@
 <?php
-
 class VersionedRelationsExtension extends DataExtension {
-
-
     /*
      * create store for historical versions, duplicate relation for live
      *
      * @return array
      */
     public function extraStatics($class = null, $extension = null) {
-
         $statics = array(
             'db' => array(),
         );
@@ -58,9 +54,7 @@ class VersionedRelationsExtension extends DataExtension {
                 $statics['db'][$relationName . '_Version'] = 'Int';
             }
         }
-
         return $statics;
-
     }
 
     /*
@@ -117,13 +111,11 @@ class VersionedRelationsExtension extends DataExtension {
         return Config::inst()->get($this->owner->ClassName, 'versioned_belongs_to', Config::EXCLUDE_EXTRA_SOURCES) ?: array();
     }
 
-
     /*
      * store relations as json in corresponding field
      *
      */
     private function storeRelation($relationName, $list){
-
         $store = array();
 
         foreach($list as $relation) {
@@ -148,14 +140,12 @@ class VersionedRelationsExtension extends DataExtension {
 
         $json = Convert::array2json($store);
         $this->owner->setField($relationName . '_Store', $json);
-
     }
 
     /*
      * store relations as json in corresponding field
      */
     public function storeRelations(){
-        //
         $readingMode = Versioned::get_reading_mode( );
         Versioned::set_reading_mode( 'Stage.Stage' );
 
@@ -180,15 +170,14 @@ class VersionedRelationsExtension extends DataExtension {
     /*
      * store current setup for relations
      */
-	public function onBeforeWrite(){
+    public function onBeforeWrite(){
         $this->storeRelations();
     }
 
     /*
      * notify other end of relation about change
      */
-	public function onAfterWrite() {
-
+    public function onAfterWrite() {
         $readingMode = Versioned::get_reading_mode();
         if($readingMode == 'Stage.Stage'){
 
@@ -221,13 +210,10 @@ class VersionedRelationsExtension extends DataExtension {
                     }
                 }
             }
-
         }
-
     }
 
     private function getVersionedObj(array $entry) {
-
         if(!isset($entry['Version']) || $entry['Version'] === 0) {
             return DataObject::get( $entry['ClassName'] )->byID($entry['ID']);
         } else {
@@ -235,13 +221,11 @@ class VersionedRelationsExtension extends DataExtension {
         }
     }
 
-
     /*
      * empty relation list when rolling back page
      * then fill it with stored historical relation list
      */
-	public function onBeforeRollback( $version ){
-
+    public function onBeforeRollback( $version ){
         foreach($this->getManyManyRelationsNames() as $relationName) {
             $this->rollbackRelation($relationName, $this->owner->getManyManyComponents($relationName), $version);
         }
@@ -268,12 +252,10 @@ class VersionedRelationsExtension extends DataExtension {
                     }
                 }
             }
-
         }
     }
 
     private function getRolledbackOwner( $version ) {
-
         if($version == Versioned::get_live_stage()) {
             // rolls back to published version
             $versionNum = Versioned::get_versionnumber_by_stage( $this->owner->ClassName, Versioned::get_live_stage(), $this->owner->ID );
@@ -283,9 +265,7 @@ class VersionedRelationsExtension extends DataExtension {
 
         // rolls back to a past version
         return $this->getVersionedObj(array( 'ID'=>$this->owner->ID, 'ClassName'=>$this->owner->ClassName, 'Version'=>$versionNum ));
-
     }
-
 
     private function rollbackRelation($relationName, $list, $version) {
         $storeFieldName = $relationName . '_Store';
@@ -317,29 +297,27 @@ class VersionedRelationsExtension extends DataExtension {
                 }
             }
         }
-
     }
 
-    /*
-       public function updateCMSFields( FieldList $fields ) {
-
+    
+    public function updateCMSFields( FieldList $fields ) {
         foreach($this->getManyManyRelationsNames() as $relationName) {
-            $fields->addFieldToTab('Root.Sections',TextareaField::create($relationName . '_Store'));
+            $fields->removeByName($relationName . '_Store');
+//            $fields->addFieldToTab('Root.Sections',TextareaField::create($relationName . '_Store'));
         }
 
         foreach($this->getHasManyRelationsNames() as $relationName) {
-            $fields->addFieldToTab('Root.Sections',TextareaField::create($relationName . '_Store'));
+            $fields->removeByName($relationName . '_Store');
+//            $fields->addFieldToTab('Root.Sections',TextareaField::create($relationName . '_Store'));
         }
-
     }
-    */
+    
 
     /*
      *
      * @return ArrayList
      */
-	private function getStoredRelation( $relationName ){
-
+    private function getStoredRelation( $relationName ) {
         $hasManyRelations = $this->getHasManyRelationsNames();
         $manyManyRelations = $this->getManyManyRelationsNames();
         $hasOneRelations = $this->getHasOneRelationsNames();
@@ -363,7 +341,6 @@ class VersionedRelationsExtension extends DataExtension {
         }
 
         else if( in_array($relationName, $hasOneRelations) ) {
-
             if( $versionedObj = $this->getVersionedObj(
                 array(
                     'ID' => $this->owner->{$relationName . 'ID'},
@@ -374,14 +351,13 @@ class VersionedRelationsExtension extends DataExtension {
                 return $versionedObj;
             }
         }
-
     }
 
     /*
      *
      * @return ArrayList
      */
-    public function getVersionedRelation( $relationName ){
+    public function getVersionedRelation( $relationName ) {
 
         $readingMode = Versioned::get_reading_mode();
         if($readingMode == 'Stage.Stage'){
@@ -399,25 +375,15 @@ class VersionedRelationsExtension extends DataExtension {
             else if( in_array($relationName, $hasOneRelations) ) {
                 return $this->owner->getComponent($relationName);
             }
-
         }
         return $this->getStoredRelation($relationName);
-
     }
-
 
     /*
-     *
      * @return array
      */
-    private function getExtraFieldsArray( $relationName ){
-
+    private function getExtraFieldsArray( $relationName ) {
         if($extra = $this->owner->manyManyExtraFieldsForComponent($relationName)) return $extra;
         return array();
-
     }
-
-
-
-
 }
