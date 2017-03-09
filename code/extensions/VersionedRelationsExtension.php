@@ -6,13 +6,11 @@ class VersionedRelationsExtension extends DataExtension {
      *
      * @return array
      */
-    public function extraStatics($class = null, $extension = null) {
-        $statics = array(
-            "db" => array(),
-            "has_one" => array(),
-            "has_many" => array(),
-            "many_many" => array(),
-        );
+    public static function add_to_class($class, $extensionClass, $args = null) {
+        $db = array();
+        $has_one = array();
+        $has_many = array();
+        $many_many = array();
 
         // Generate forward relations
         $versionedHasOneRels = Config::inst()->get($class, "versioned_has_one", Config::EXCLUDE_EXTRA_SOURCES);
@@ -27,10 +25,10 @@ class VersionedRelationsExtension extends DataExtension {
                 }
 
                 // Create original relation
-                $statics["has_one"][$relationName] = $relationClass;
+                $has_one[$relationName] = $relationClass;
 
                 // Store historical values for relation
-                $statics["db"][$relationName . "_Version"] = "Int";
+                $db[$relationName . "_Version"] = "Int";
             }
         }
 
@@ -42,10 +40,10 @@ class VersionedRelationsExtension extends DataExtension {
                 }
 
                 // Create original relation
-                $statics["has_many"][$relationName] = $relationClass;
+                $has_many[$relationName] = $relationClass;
 
                 // Store historical values for relation
-                $statics["db"][$relationName . "_Store"] = "Text";
+                $db[$relationName . "_Store"] = "Text";
             }
         }
 
@@ -57,10 +55,10 @@ class VersionedRelationsExtension extends DataExtension {
                 }
 
                 // Create original relation
-                $statics["many_many"][$relationName] = $relationClass;
+                $many_many[$relationName] = $relationClass;
 
                 // Store historical values for relation
-                $statics["db"][$relationName . "_Store"] = "Text";
+                $db[$relationName . "_Store"] = "Text";
             }
         }
 
@@ -77,7 +75,7 @@ class VersionedRelationsExtension extends DataExtension {
                 }
 
                 // Create original relation
-                $statics["belongs_to"][$relationName] = $relationClass;
+                $belongs_to[$relationName] = $relationClass;
             }
         }
 
@@ -89,7 +87,7 @@ class VersionedRelationsExtension extends DataExtension {
                 }
 
                 // Create original relation
-                $statics["has_one"][$relationName] = $relationClass;
+                $has_one[$relationName] = $relationClass;
             }
         }
 
@@ -101,11 +99,18 @@ class VersionedRelationsExtension extends DataExtension {
                 }
 
                 // Create original relation
-                $statics["belongs_many_many"][$relationName] = $relationClass;
+                $belongs_many_many[$relationName] = $relationClass;
             }
         }
 
-        return $statics;
+        Config::inst()->update($class, "db", $db);
+        Config::inst()->update($class, "has_one", $has_one);
+        Config::inst()->update($class, "has_many", $has_many);
+        Config::inst()->update($class, "many_many", $many_many);
+
+        Config::inst()->update($class, "__versioned", true);
+
+        parent::add_to_class($class, $extensionClass, $args);
     }
 
     /*
