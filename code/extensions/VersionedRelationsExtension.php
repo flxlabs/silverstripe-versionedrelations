@@ -11,6 +11,8 @@ class VersionedRelationsExtension extends DataExtension {
         $has_one = array();
         $has_many = array();
         $many_many = array();
+        $belongs_to = array();
+        $belongs_many_many = array();
 
         // Generate forward relations
         $versionedHasOneRels = Config::inst()->get($class, "versioned_has_one", Config::EXCLUDE_EXTRA_SOURCES);
@@ -107,6 +109,8 @@ class VersionedRelationsExtension extends DataExtension {
         Config::inst()->update($class, "has_one", $has_one);
         Config::inst()->update($class, "has_many", $has_many);
         Config::inst()->update($class, "many_many", $many_many);
+        Config::inst()->update($class, "belongs_to", $belongs_to);
+        Config::inst()->update($class, "belongs_many_many", $belongs_many_many);
 
         Config::inst()->update($class, "__versioned", true);
 
