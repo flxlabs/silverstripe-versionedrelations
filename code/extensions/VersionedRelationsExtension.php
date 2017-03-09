@@ -6,7 +6,7 @@ class VersionedRelationsExtension extends DataExtension {
      *
      * @return array
      */
-    public static function add_to_class($class, $extensionClass, $args = null) {
+    public function extraStatics($class = null, $extensionClass = null) {
         $db = array();
         $has_one = array();
         $has_many = array();
@@ -105,16 +105,16 @@ class VersionedRelationsExtension extends DataExtension {
             }
         }
 
-        Config::inst()->update($class, "db", $db);
-        Config::inst()->update($class, "has_one", $has_one);
-        Config::inst()->update($class, "has_many", $has_many);
-        Config::inst()->update($class, "many_many", $many_many);
-        Config::inst()->update($class, "belongs_to", $belongs_to);
-        Config::inst()->update($class, "belongs_many_many", $belongs_many_many);
-
         Config::inst()->update($class, "__versioned", true);
 
-        parent::add_to_class($class, $extensionClass, $args);
+        return array(
+            "db" => $db,
+            "has_one" => $has_one,
+            "has_many" => $has_many,
+            "many_many" => $many_many,
+            "belongs_to" => $belongs_to,
+            "belongs_many_many" => $belongs_many_many
+        );
     }
 
     /*
@@ -204,7 +204,7 @@ class VersionedRelationsExtension extends DataExtension {
      * store relations as json in corresponding field
      */
     public function storeRelations() {
-        $readingMode = Versioned::get_reading_mode( );
+        $readingMode = Versioned::get_reading_mode();
         Versioned::set_reading_mode("Stage.Stage");
 
         foreach ($this->getManyManyRelationsNames() as $relationName => $relationClass) {
@@ -237,6 +237,7 @@ class VersionedRelationsExtension extends DataExtension {
      */
     public function onAfterWrite() {
         $readingMode = Versioned::get_reading_mode();
+
         if ($readingMode == "Stage.Stage") {
 
             foreach ($this->getBelongsManyManyRelationsNames() as $relationName => $relationClass) {
@@ -268,6 +269,8 @@ class VersionedRelationsExtension extends DataExtension {
                 }
             }
         }
+
+        parent::onAfterWrite();
     }
 
     private function getVersionedObj(array $entry) {
@@ -410,22 +413,23 @@ class VersionedRelationsExtension extends DataExtension {
      *
      * @return ArrayList
      */
-    public function getVersionedRelation( $relationName ) {
+    public function getVersionedRelation($relationName) {
 
         $readingMode = Versioned::get_reading_mode();
+
         if ($readingMode == "Stage.Stage") {
 
             $hasManyRelations = $this->getHasManyRelationsNames();
             $manyManyRelations = $this->getManyManyRelationsNames();
             $hasOneRelations = $this->getHasOneRelationsNames();
 
-            if (in_array($relationName, $hasManyRelations)) {
+            if (array_key_exists($relationName, $hasManyRelations)) {
                 return $this->owner->getComponents($relationName);
             }
-            else if (in_array($relationName, $manyManyRelations)) {
+            else if (array_key_exists($relationName, $manyManyRelations)) {
                 return $this->owner->getManyManyComponents($relationName);
             }
-            else if (in_array($relationName, $hasOneRelations)) {
+            else if (array_key_exists($relationName, $hasOneRelations)) {
                 return $this->owner->getComponent($relationName);
             }
         }
