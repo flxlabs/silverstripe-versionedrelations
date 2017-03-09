@@ -16,22 +16,12 @@ class MyObject extends DataObject {
     );
 
     private static $versioned_many_many = array(
-        'MMRelations',
-    );
-    private static $versioned_has_many = array(
-        'HMRelations',
-    );
-    private static $versioned_has_one = array(
-        'HORelation',
-    );
-
-    private static $many_many = array(
         'MMRelations' => 'MyRelatedObjectX',
     );
-    private static $has_many = array(
+    private static $versioned_has_many = array(
         'HMRelations' => 'MyRelatedObjectY',
     );
-    private static $has_one = array(
+    private static $versioned_has_one = array(
         'HORelation' => 'MyRelatedObjectZ',
     );
 
@@ -58,10 +48,6 @@ class MyRelatedObjectX extends DataObject {
     );
 
     private static $versioned_belongs_many_many = array(
-        'MainClasses',
-    );
-
-    private static $belongs_many_many = array(
         'MainClasses' => 'MainClass',
     );
 
@@ -96,10 +82,6 @@ class MyRelatedObjectY extends DataObject {
     );
 
     private static $versioned_belongs_has_many = array(
-        'MainClass',
-    );
-
-    private static $has_one = array(
         'MainClass' => 'MainClass',
     );
 
@@ -120,10 +102,6 @@ class MyRelatedObjectY extends DataObject {
     );
 
     private static $versioned_belongs_to = array(
-        'MainClass',
-    );
-
-    private static $belongs_to = array(
         'MainClass' => 'MainClass',
     );
 
