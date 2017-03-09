@@ -1,5 +1,6 @@
 <?php
 class VersionedRelationsExtension extends DataExtension {
+
     /*
      * create store for historical versions, duplicate relation for live
      *
@@ -65,7 +66,7 @@ class VersionedRelationsExtension extends DataExtension {
 
         // Generate backwards relations
         $versionedBelongsToRels = Config::inst()->get($class, "versioned_belongs_to", Config::EXCLUDE_EXTRA_SOURCES);
-        $versionedBelongsManyRels = Config::inst()->get($class, "versioned_belongs_many", Config::EXCLUDE_EXTRA_SOURCES);
+        $versionedBelongsManyRels = Config::inst()->get($class, "versioned_belongs_has_many", Config::EXCLUDE_EXTRA_SOURCES);
         $versionedBelongsManyManyRels = Config::inst()->get($class, "versioned_belongs_many_many", Config::EXCLUDE_EXTRA_SOURCES);
 
         if (is_array($versionedBelongsToRels)) {
@@ -84,7 +85,7 @@ class VersionedRelationsExtension extends DataExtension {
             foreach($versionedBelongsManyRels as $relationName => $relationClass) {
 
                 if (!$relationClass) {
-                    throw new Exception("{$class} needs to define a class type for the versioned_belongs_many relation $relationName");
+                    throw new Exception("{$class} needs to define a class type for the versioned_belongs_has_many relation $relationName");
                 }
 
                 // Create original relation
@@ -197,15 +198,15 @@ class VersionedRelationsExtension extends DataExtension {
         $readingMode = Versioned::get_reading_mode( );
         Versioned::set_reading_mode("Stage.Stage");
 
-        foreach ($this->getManyManyRelationsNames() as $relationName) {
+        foreach ($this->getManyManyRelationsNames() as $relationName => $relationClass) {
             $this->storeRelation($relationName, $this->owner->getManyManyComponents($relationName));
         }
 
-        foreach ($this->getHasManyRelationsNames() as $relationName) {
+        foreach ($this->getHasManyRelationsNames() as $relationName => $relationClass) {
             $this->storeRelation($relationName, $this->owner->getComponents($relationName));
         }
 
-        foreach ($this->getHasOneRelationsNames() as $relationName) {
+        foreach ($this->getHasOneRelationsNames() as $relationName => $relationClass) {
             // get version of relation
             if ($obj = $this->owner->getComponent($relationName)) {
                 if (isset($obj->Version)) $this->owner->setField($relationName . "_Version", $obj->Version);
@@ -229,7 +230,7 @@ class VersionedRelationsExtension extends DataExtension {
         $readingMode = Versioned::get_reading_mode();
         if ($readingMode == "Stage.Stage") {
 
-            foreach ($this->getBelongsManyManyRelationsNames() as $relationName) {
+            foreach ($this->getBelongsManyManyRelationsNames() as $relationName => $relationClass) {
                 if ($relations = $this->owner->getManyManyComponents($relationName)) {
                     foreach ($relations as $relation) {
                         if ($relation->ID) {
@@ -240,7 +241,7 @@ class VersionedRelationsExtension extends DataExtension {
                 }
             }
 
-            foreach ($this->getBelongsHasManyRelationsNames() as $relationName) {
+            foreach ($this->getBelongsHasManyRelationsNames() as $relationName => $relationClass) {
                 if ($relation = $this->owner->getComponent($relationName)) {
                     if ($relation->ID) {
                         $relation->storeRelations();
@@ -249,7 +250,7 @@ class VersionedRelationsExtension extends DataExtension {
                 }
             }
 
-            foreach ($this->getBelongsToRelationsNames() as $relationName) {
+            foreach ($this->getBelongsToRelationsNames() as $relationName => $relationClass) {
                 if ($relation = $this->owner->getComponent($relationName)) {
                     if ($relation->ID) {
                         $relation->storeRelations();
@@ -273,15 +274,15 @@ class VersionedRelationsExtension extends DataExtension {
      * then fill it with stored historical relation list
      */
     public function onBeforeRollback($version) {
-        foreach ($this->getManyManyRelationsNames() as $relationName) {
+        foreach ($this->getManyManyRelationsNames() as $relationName => $relationClass) {
             $this->rollbackRelation($relationName, $this->owner->getManyManyComponents($relationName), $version);
         }
 
-        foreach ($this->getHasManyRelationsNames() as $relationName) {
+        foreach ($this->getHasManyRelationsNames() as $relationName => $relationClass) {
             $this->rollbackRelation($relationName, $this->owner->getComponents($relationName), $version);
         }
 
-        foreach ($this->getHasOneRelationsNames() as $relationName) {
+        foreach ($this->getHasOneRelationsNames() as $relationName => $relationClass) {
             if ($versionedOwner = $this->getRolledbackOwner($version)) {
                 $objID = $versionedOwner->{$relationName . "ID"};
 
@@ -324,7 +325,7 @@ class VersionedRelationsExtension extends DataExtension {
             if ($store = Convert::json2Array($versionedOwner->$storeFieldName)) {
                 foreach ($store as $entry) {
 
-                    if ($foreignObj = DataObject::get($entry["ClassName"])->byID($entry["ID")) {
+                    if ($foreignObj = DataObject::get($entry["ClassName"])->byID($entry["ID"])) {
 
                         // rollback versionable related object
                         if ($foreignObj->hasExtension("Versioned") && $this->getVersionedObj($entry)) {
@@ -345,11 +346,12 @@ class VersionedRelationsExtension extends DataExtension {
 
     
     public function updateCMSFields(FieldList $fields) {
-        foreach ($this->getManyManyRelationsNames() as $relationName) {
+
+        foreach ($this->getManyManyRelationsNames() as $relationName => $relationClass) {
             $fields->removeByName($relationName . "_Store");
         }
 
-        foreach ($this->getHasManyRelationsNames() as $relationName) {
+        foreach ($this->getHasManyRelationsNames() as $relationName => $relationClass) {
             $fields->removeByName($relationName . "_Store");
         }
     }
