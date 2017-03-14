@@ -356,7 +356,7 @@ class VersionedRelationsExtension extends DataExtension {
         }
     }
 
-    
+
     public function updateCMSFields(FieldList $fields) {
 
         foreach ($this->getManyManyRelationsNames() as $relationName => $relationClass) {
@@ -367,7 +367,7 @@ class VersionedRelationsExtension extends DataExtension {
             $fields->removeByName($relationName . "_Store");
         }
     }
-    
+
 
     /*
      *
@@ -378,7 +378,7 @@ class VersionedRelationsExtension extends DataExtension {
         $manyManyRelations = $this->getManyManyRelationsNames();
         $hasOneRelations = $this->getHasOneRelationsNames();
 
-        if (in_array($relationName, $hasManyRelations) || in_array($relationName, $manyManyRelations)) {
+        if (array_key_exists($relationName, $hasManyRelations) || array_key_exists($relationName, $manyManyRelations)) {
             $json = $this->owner->getField($relationName . "_Store");
 
             $ret = ArrayList::create();
@@ -396,7 +396,7 @@ class VersionedRelationsExtension extends DataExtension {
             return $ret;
         }
 
-        else if (in_array($relationName, $hasOneRelations)) {
+        else if (array_key_exists($relationName, $hasOneRelations)) {
             $arr = array(
                 "ID" => $this->owner->{$relationName . "ID"},
                 "ClassName" => $this->owner->getComponent($relationName),
