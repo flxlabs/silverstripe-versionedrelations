@@ -111,11 +111,14 @@ class MyRelatedObjectY extends DataObject {
 Getting the versioned relations:
 
 ```php
-
+…
+$this->vRelationName();
 …
 
-$this->getVersionedRelation('Relations');
+or
 
+…
+$this->getVersionedRelation('RelationName');
 …
 
 ```
