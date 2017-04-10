@@ -1,6 +1,11 @@
 <?php
 class VersionedRelationsExtension extends DataExtension {
 
+    public function __construct() {
+        parent::__construct();
+        Requirements::javascript("versionedrelations/javascript/versionedrelation.js");
+    }
+    
     /*
      * create store for historical versions, duplicate relation for live
      *
@@ -22,6 +27,10 @@ class VersionedRelationsExtension extends DataExtension {
         if (is_array($versionedHasOneRels)) {
             foreach ($versionedHasOneRels as $relationName => $relationClass) {
 
+                if (!$relationClass) {
+                    throw new Exception("{$class} needs to define a class type for the versioned_has_one relation $relationName");
+                }
+
                 // Create original relation
                 $has_one[$relationName] = $relationClass;
 
@@ -33,6 +42,10 @@ class VersionedRelationsExtension extends DataExtension {
         if (is_array($versionedHasManyRels)) {
             foreach($versionedHasManyRels as $relationName => $relationClass) {
 
+                if (!$relationClass) {
+                    throw new Exception("{$class} needs to define a class type for the versioned_has_many relation $relationName");
+                }
+
                 // Create original relation
                 $has_many[$relationName] = $relationClass;
 
@@ -43,6 +56,11 @@ class VersionedRelationsExtension extends DataExtension {
 
         if (is_array($versionedManyManyRels)) {
             foreach ($versionedManyManyRels as $relationName => $relationClass) {
+
+                if (!$relationClass) {
+                    throw new Exception("{$class} needs to define a class type for the versioned_many_many relation $relationName");
+                }
+
                 // Create original relation
                 $many_many[$relationName] = $relationClass;
 
@@ -58,6 +76,11 @@ class VersionedRelationsExtension extends DataExtension {
 
         if (is_array($versionedBelongsToRels)) {
             foreach ($versionedBelongsToRels as $relationName => $relationClass) {
+
+                if (!$relationClass) {
+                    throw new Exception("{$class} needs to define a class type for the versioned_belongs_to relation $relationName");
+                }
+
                 // Create original relation
                 $belongs_to[$relationName] = $relationClass;
             }
@@ -65,6 +88,11 @@ class VersionedRelationsExtension extends DataExtension {
 
         if (is_array($versionedBelongsManyRels)) {
             foreach($versionedBelongsManyRels as $relationName => $relationClass) {
+
+                if (!$relationClass) {
+                    throw new Exception("{$class} needs to define a class type for the versioned_belongs_has_many relation $relationName");
+                }
+
                 // Create original relation
                 $has_one[$relationName] = $relationClass;
             }
@@ -72,16 +100,16 @@ class VersionedRelationsExtension extends DataExtension {
 
         if (is_array($versionedBelongsManyManyRels)) {
             foreach ($versionedBelongsManyManyRels as $relationName => $relationClass) {
+
+                if (!$relationClass) {
+                    throw new Exception("{$class} needs to define a class type for the versioned_belongs_many_many relation $relationName");
+                }
+
                 // Create original relation
                 $belongs_many_many[$relationName] = $relationClass;
             }
         }
 
-        Config::inst()->update($class, "has_one", $has_one);
-        Config::inst()->update($class, "has_many", $has_many);
-        Config::inst()->update($class, "many_many", $many_many);
-        Config::inst()->update($class, "belongs_to", $belongs_to);
-        Config::inst()->update($class, "belongs_many_many", $belongs_many_many);
         Config::inst()->update($class, "__versioned", true);
 
         return array(
@@ -92,47 +120,6 @@ class VersionedRelationsExtension extends DataExtension {
             "belongs_to" => $belongs_to,
             "belongs_many_many" => $belongs_many_many
         );
-    }
-
-    public function __call($method, $args) {
-        if (strpos($method, "v") !== 0) return null;
-        $method = substr($method, 1);
-
-        $rels = array_merge(
-            $this->getHasOneRelationsNames(),
-            $this->getHasManyRelationsNames(),
-            $this->getManyManyRelationsNames()
-        );
-        foreach ($rels as $name => $class) {
-            if (strtolower($name) == $method) {
-                return $this->getVersionedRelation($name);
-            }
-        }
-
-        return null;
-    }
-
-    public function allMethodNames($custom) {
-        // Get all own public methods
-        $class = new ReflectionClass($this);
-        $reflectionMethods = $class->getMethods(ReflectionMethod::IS_PUBLIC);
-        $methods = array_map(function($m) { return strtolower($m->name); }, $reflectionMethods);
-
-        // Add methods for relations
-        // We cannot use the name without the prefix "v" because silverstripe internals
-        // overwrite those relationship names. We could use any other prefix or a suffix though.
-        $rels = array_merge(
-            $this->getHasOneRelationsNames(),
-            $this->getHasManyRelationsNames(),
-            $this->getManyManyRelationsNames()
-        );
-        if ($rels) {
-            foreach ($rels as $name => $class) {
-                $methods[] = strtolower("v" . $name);
-            }
-        }
-
-        return $methods;
     }
 
     /*
@@ -190,10 +177,10 @@ class VersionedRelationsExtension extends DataExtension {
     }
 
     /*
-     * store relations as json in corresponding field
+     * create array for corresponding field
      *
      */
-    private function storeRelation($relationName, $list) {
+    private function relationToArray($relationName, $list) {
         $store = array();
 
         foreach ($list as $relation) {
@@ -213,8 +200,15 @@ class VersionedRelationsExtension extends DataExtension {
 
             $store[] = $entryStore;
         }
+        return $store;
+    }
 
-        $json = Convert::array2json($store);
+    /*
+     * store relations as json in corresponding field
+     *
+     */
+    private function storeRelation($relationName, $list) {
+        $json = Convert::array2json($this->relationToArray($relationName, $list));
         $this->owner->setField($relationName . "_Store", $json);
     }
 
@@ -374,7 +368,7 @@ class VersionedRelationsExtension extends DataExtension {
         }
     }
 
-    
+
     public function updateCMSFields(FieldList $fields) {
 
         foreach ($this->getManyManyRelationsNames() as $relationName => $relationClass) {
@@ -385,7 +379,7 @@ class VersionedRelationsExtension extends DataExtension {
             $fields->removeByName($relationName . "_Store");
         }
     }
-    
+
 
     /*
      *
@@ -396,7 +390,8 @@ class VersionedRelationsExtension extends DataExtension {
         $manyManyRelations = $this->getManyManyRelationsNames();
         $hasOneRelations = $this->getHasOneRelationsNames();
 
-        if (array_key_exists($relationName, $hasManyRelations) || array_key_exists($relationName, $manyManyRelations)) {
+        if (array_key_exists($relationName, $hasManyRelations) || 
+            array_key_exists($relationName, $manyManyRelations)) {
             $json = $this->owner->getField($relationName . "_Store");
 
             $ret = ArrayList::create();
@@ -412,9 +407,7 @@ class VersionedRelationsExtension extends DataExtension {
                 }
             }
             return $ret;
-        }
-
-        else if (array_key_exists($relationName, $hasOneRelations)) {
+        } else if (array_key_exists($relationName, $hasOneRelations)) {
             $arr = array(
                 "ID" => $this->owner->{$relationName . "ID"},
                 "ClassName" => $this->owner->getComponent($relationName),
@@ -427,6 +420,37 @@ class VersionedRelationsExtension extends DataExtension {
         }
     }
 
+    /*
+    * 
+    */
+    public function checkForChanges() {
+        $readingMode = Versioned::get_reading_mode();
+
+        if ($readingMode == "Stage.Stage" && $owner){
+            $versionedManyManyRels = Config::inst()->get($this->ownerBaseClass, "versioned_many_many", Config::EXCLUDE_EXTRA_SOURCES);
+
+            foreach($versionedManyManyRels as $relName => $className) {
+                $allStoredArr = $this->relationToArray($relName, $this->getStoredRelation($relName));
+                $allStageArr = $this->relationToArray($relName, $this->getVersionedRelation($relName));
+                
+                $stored = array();
+                foreach($allStoredArr as $storedArr){
+                    $stored[] = implode(", ", $storedArr);
+                }
+                
+                $stage = array();
+                foreach($allStageArr as $stageArr){
+                    $stage[] = implode(", ", $stageArr);
+                }
+                
+                if(Count(array_diff($stored, $stage))){
+//                    echo "there is something different";
+//                    die;
+                }
+            }
+        }
+    }
+    
     /*
      *
      * @return ArrayList
