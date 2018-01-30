@@ -4,3 +4,7 @@ After:
   - 'framework/*'
   - 'cms/*'
 ---
+
+GridFieldOrderableRows:
+  extensions:
+    - GridFieldOrderableRowsExtension
