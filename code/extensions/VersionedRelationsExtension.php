@@ -8,7 +8,7 @@ class VersionedRelationsExtension extends DataExtension {
 			Requirements::javascript("versionedrelations/javascript/versionedrelation.js");
 		}
 	}
-	
+
 	/*
 	 * create store for historical versions, duplicate relation for live
 	 *
@@ -325,7 +325,7 @@ class VersionedRelationsExtension extends DataExtension {
 				$qClass = ClassInfo::table_for_object_field($relClass, "Version");
 				//$query->addWhere("\"$qClass\".\"Version\" = \"$meClass\".\"{$relName}_Version\"");
 				//$query->renameTable($class . "_Live", $class . "_Versions");
-				
+
 				//var_dump($query->sql());
 
 				if (array_key_exists($key, $query->from)) {
@@ -363,7 +363,7 @@ class VersionedRelationsExtension extends DataExtension {
 		$manyManyRelations = $this->getManyManyRelationsNames();
 		$hasOneRelations = $this->getHasOneRelationsNames();
 
-		if (array_key_exists($relationName, $hasManyRelations) || 
+		if (array_key_exists($relationName, $hasManyRelations) ||
 			array_key_exists($relationName, $manyManyRelations)) {
 			$json = $this->owner->getField($relationName . "_Store");
 
@@ -428,6 +428,56 @@ class VersionedRelationsExtension extends DataExtension {
 						if ($foreignObj->hasExtension("Versioned")) {
 							$foreignObj->doRollbackTo($objVersion);
 						}
+					}
+				}
+			}
+		}
+	}
+
+	private function getRolledbackOwner($version) {
+		if ($version == Versioned::get_live_stage()) {
+			// rolls back to published version
+			$versionNum = Versioned::get_versionnumber_by_stage(
+				$this->owner->ClassName,
+				Versioned::get_live_stage(),
+				$this->owner->ID
+			);
+		} else {
+			$versionNum = $version;
+		}
+
+		// rolls back to a past version
+		return $this->getVersionedObj(array(
+			"ID" => $this->owner->ID,
+			"ClassName" => $this->owner->ClassName,
+			"Version" => $versionNum
+		));
+	}
+
+	private function rollbackRelation($relationName, $list, $version) {
+		$storeFieldName = $relationName . "_Store";
+		$list->removeAll();
+
+		$versionedOwner = $this->getRolledbackOwner($version);
+
+		// fill relations
+		if ($versionedOwner && $versionedOwner->$storeFieldName) {
+			if ($store = Convert::json2Array($versionedOwner->$storeFieldName)) {
+				foreach ($store as $entry) {
+
+					if ($foreignObj = DataObject::get($entry["ClassName"])->byID($entry["ID"])) {
+
+						// rollback versionable related object
+						if ($foreignObj->hasExtension("Versioned") && $this->getVersionedObj($entry)) {
+								$foreignObj->doRollbackTo($entry["Version"]);
+						}
+						// extraFields
+						$extras = array();
+						foreach ($this->getExtraFieldsArray($relationName) as $k => $v) {
+								if (isset($entry[$k])) $extras[$k] = $entry[$k];
+						}
+						// add
+						$list->add($foreignObj, $extras);
 					}
 				}
 			}
