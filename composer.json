@@ -1,6 +1,5 @@
 {
 	"name": "flxlabs/silverstripe-versionedrelations",
-	"version": "0.1.11",
 	"description": "Enable versioning and rollback of many-many relations",
 	"type": "silverstripe-module",
 	"homepage": "http://github.com/flxlabs/silverstripe-versionedrelations",
