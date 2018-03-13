@@ -4,7 +4,10 @@ class VersionedRelationsExtension extends DataExtension {
 	public function __construct() {
 		parent::__construct();
 
-		if (is_subclass_of(Controller::curr(), "LeftAndMain")) {
+		if (
+			Controller::has_curr() &&
+			is_subclass_of(Controller::curr(), "LeftAndMain")
+		) {
 			Requirements::javascript("versionedrelations/javascript/versionedrelation.js");
 		}
 	}
