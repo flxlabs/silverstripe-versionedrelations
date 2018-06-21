@@ -22,7 +22,7 @@ class VersionedRelationsExtension extends DataExtension {
 		// TODO: Add a config option to turn this off
 		foreach (ClassInfo::subclassesFor($class) as $c) {
 			if ($c !== $class) {
-				Object::add_extension($c, "VersionedRelationsExtension");
+				$c::add_extension($c, "VersionedRelationsExtension");
 			}
 		}
 
